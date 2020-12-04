@@ -15,5 +15,15 @@
         "psr-4": {
             "Hudm\\Wxa\\": "src"
         }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Hudm\\Wxa\\WechatAssistantServiceProvider"
+            ],
+            "aliases": {
+                "WechatAssistant": "Hudm\\Wxa\\WechatAssistantFacade"
+            }
+        }
     }
 }
