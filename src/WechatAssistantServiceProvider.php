@@ -34,7 +34,9 @@ class WechatAssistantServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->publishes([
-            __DIR__.'/config/assistant.php' => config_path('assistant.php')
+            __DIR__ . '/../config/assistant.php' => config_path('assistant.php')
         ]);
+
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
     }
 }

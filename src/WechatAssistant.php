@@ -6,7 +6,7 @@ use DB;
 use App\Models\User;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
-use App\Models\WechatAccount;
+use Hudm\Wxa\Models\WechatAccount;
 
 class WechatAssistant
 {
