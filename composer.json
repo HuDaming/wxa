@@ -1,0 +1,19 @@
+{
+    "name": "hudm\/wxa",
+    "description": "微信助手工具sdk",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "hudm",
+            "email": "40834106@qq.com"
+        }
+    ],
+    "require": {
+        "guzzlehttp/guzzle": "^7.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Hudm\\Wxa\\": "src"
+        }
+    }
+}
