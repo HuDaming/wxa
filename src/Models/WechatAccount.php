@@ -27,6 +27,8 @@ use Illuminate\Database\Eloquent\Model;
  * @method static \Illuminate\Database\Eloquent\Builder|WechatAccount whereUserId($value)
  * @property string $type 账号类型
  * @method static \Illuminate\Database\Eloquent\Builder|WechatAccount whereType($value)
+ * @property-read \Illuminate\Database\Eloquent\Collection|Group[] $groups
+ * @property-read int|null $groups_count
  */
 class WechatAccount extends Model
 {
@@ -48,5 +50,15 @@ class WechatAccount extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * 群列表
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function groups()
+    {
+        return $this->hasMany(Group::class, 'service_account', 'account');
     }
 }
