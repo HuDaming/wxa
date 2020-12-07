@@ -52,4 +52,14 @@ class Group extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * 群组成员
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function members()
+    {
+        return $this->belongsToMany(WechatAccount::class, 'members', 'account', 'owner_account');
+    }
 }

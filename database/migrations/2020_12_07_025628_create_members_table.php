@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateWechatAccountsTable extends Migration
+class CreateMembersTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,11 +13,10 @@ class CreateWechatAccountsTable extends Migration
      */
     public function up()
     {
-        Schema::create('wechat_accounts', function (Blueprint $table) {
+        Schema::create('members', function (Blueprint $table) {
             $table->id();
-            $table->string('type')->default(\App\Models\WechatAccount::TYPE_COMMON)->comment('账号类型');
-            $table->string('account')->unique()->comment('微信账号');
-            $table->string('nickname')->comment('微信昵称');
+            $table->string('owner_account')->comment('所属微信区编号');
+            $table->string('account')->comment('微信号');
             $table->timestamps();
         });
     }
@@ -29,6 +28,6 @@ class CreateWechatAccountsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('wechat_accounts');
+        Schema::dropIfExists('members');
     }
 }

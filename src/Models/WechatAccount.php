@@ -61,4 +61,13 @@ class WechatAccount extends Model
     {
         return $this->hasMany(Group::class, 'service_account', 'account');
     }
+
+    /**
+     * 群列表
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function allGroups(){
+        return $this->belongsToMany(Group::class, 'members', 'account', 'owner_account');
+    }
 }
