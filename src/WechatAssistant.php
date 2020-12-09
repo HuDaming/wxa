@@ -2,9 +2,11 @@
 
 namespace Hudm\Wxa;
 
+use App\Http\Middleware\TrustHosts;
 use DB;
 use App\Models\User;
 use GuzzleHttp\Client;
+use Hudm\Wxa\Jobs\SaveGroups;
 use Hudm\Wxa\Models\Group;
 use Illuminate\Http\Request;
 use Hudm\Wxa\Models\WechatAccount;
@@ -40,8 +42,10 @@ class WechatAssistant
         $msg = json_decode($request->input('msg'), true);
         $account = $msg['wxid'];
         $name = $msg['nickname'];
+
         // 查询微信账号记录
         $wechatAccount = WechatAccount::whereAccount($account)->first();
+
         // 账号不存在
         if (!$wechatAccount) {
             // 开启事务处理
@@ -49,14 +53,16 @@ class WechatAssistant
                 // 新建用户
                 $user = User::create([
                     'name' => $name,
-                    'nickname' => $name
-                ]);
-                // 新建用户对应的微信账号信息
-                $user->wechatAccount()->create([
-                    'account' => $account,
                     'nickname' => $name,
-                    'type' => WechatAccount::TYPE_SERVICE
+                    'wx_account' => $account
                 ]);
+
+                // 新建用户对应的微信账号信息
+                $user->wechatAccount()
+                    ->create([
+                        'nickname' => $name,
+                        'type' => WechatAccount::TYPE_SERVICE
+                    ]);
             });
         } else {
             // 如果用户不是客服账号，更新账号为客服账号
@@ -65,7 +71,7 @@ class WechatAssistant
         }
 
         // 触发获取账户微信群列表事件
-        $this->getGroupList($account);
+        dispatch(new SaveGroups($account));
 
         return 'SUCCESS';
     }
@@ -73,105 +79,81 @@ class WechatAssistant
     /**
      * 更新账号的群列表
      *
-     * @param string $account
+     * @param string $robotWxid
      * @param bool $isRefresh
-     * @return false|string
+     * @return mixed
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function getGroupList(string $account = '', bool $isRefresh = false)
+    public function getGroupList(string $robotWxid, bool $isRefresh = true)
     {
-        /** @var WechatAccount $account */
-        $account = WechatAccount::with('groups')->whereAccount($account)->first();
-        // 群号
-        $groupNos = $account->groups->pluck('owner_account')->toArray();
+        $params = [];
+        $params['type'] = 205;
+        $params['robot_wxid'] = $robotWxid;
+        $params['is_refresh'] = $isRefresh;
 
-        // 如果账户不存在
-        if (!$account) return false;
-        // 请求工具获取用户群列表
-        $params = ['type' => 205, 'robot_wxid' => $account, 'is_refresh' => $isRefresh];
-        $query = ['data' => json_encode($params)];
-        $res = $this->getHttpClient()
-            ->post($this->appUrl, ['query' => $query])
-            ->getBody()
-            ->getContents();
-        $res = json_decode($res, true);
-        $data = json_decode(urldecode($res['data']));
-
-        // 遍历数据
-        $groups = [];
-        foreach ($data as $item) {
-            if (!in_array($item->wxid, $groupNos)) {
-                $groups[] = [
-                    "owner_account" => $item->wxid,
-                    "title" => $item->nickname,
-                    "service_account" => $item->robot_wxid,
-                    "user_id" => $account->user_id,
-                ];
-            }
-
-            // 触发获取群用户列表事件
-            $this->getGroupMembers($item->robot_wxid, $item->wxid, true);
-        }
-        // 保存群数据
-        Group::insert($groups);
-
-
-        return 'SUCCESS';
+        return $this->assistantToolResponse($params);
     }
 
     /**
-     * @param string $serviceAccount
-     * @param string $groupAccount
+     * 获取群成员列表
+     *
+     * @param string $robotWxid
+     * @param string $groupWxid
      * @param bool $isRefresh
-     * @return string
+     * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function getGroupMembers(string $serviceAccount, string $groupAccount, bool $isRefresh = false)
+    public function getGroupMembers(string $robotWxid, string $groupWxid, bool $isRefresh = true)
     {
-        $params = [
-            'type' => 206,                      // Api数值（可以参考 - api列表demo）
-            'robot_wxid' => $serviceAccount,    // 账户id
-            'group_wxid' => $groupAccount,      // 群id
-            'is_refresh' => $isRefresh,         // 是否刷新列表，0 从缓存获取 / 1 刷新并获取
-        ];
+        $params = [];
+        $params['type'] = 206;              // Api数值（可以参考 - api列表demo）
+        $params['robot_wxid'] = $robotWxid; // 账户id
+        $params['group_wxid'] = $groupWxid; // 群id
+        $params['is_refresh'] = $isRefresh; // 是否刷新列表，0 从缓存获取 / 1 刷新并获取
 
-        $res = $this->getHttpClient()
-            ->post($this->appUrl, [
-                'query' => ['data' => json_encode($params)]
-            ])
-            ->getBody()
-            ->getContents();
+        return $this->assistantToolResponse($params);
+    }
+
+    /**
+     * 获取群成员资料
+     *
+     * @param string $robotWxid
+     * @param string $groupWxid
+     * @param $memberWxid
+     * @return array
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function getGroupMemberInfo(string $robotWxid, string $groupWxid, $memberWxid)
+    {
+        $params = [];
+        $data['type'] = 207;                // Api数值
+        $data['robot_wxid'] = $robotWxid;   // 账户id，取哪个账号的资料
+        $data['group_wxid'] = $groupWxid;   // 群id
+        $data['member_wxid'] = $memberWxid; // 群成员id
+
+        return $this->assistantToolResponse($params);
+    }
+
+    /**
+     * 请求微信助手工具返回数据
+     *
+     * @param array $params
+     * @return array
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    protected function assistantToolResponse(array $params)
+    {
+        // 构造请求参数
+        $query = [];
+        $query['query'] = ['data' => json_encode($params)];
+
+        // 请求微信助手工具
+        $res = $this->getHttpClient()->post($this->appUrl, $query)->getBody()->getContents();
+
+        // 解析响应数据返回
         $res = json_decode($res, true);
-        $data = json_decode(urldecode($res['data']));
 
-        // 查询已存在账户
-        $existsAccounts = WechatAccount::whereIn('account', Arr::pluck($data, 'wxid'))
-            ->pluck('account')->toArray();
-
-        // 如果已存在账户不为空，在列表中清除
-        if (!empty($existsAccounts)) {
-            $data = Arr::where($data, function ($value) use ($existsAccounts) {
-                return !in_array($value->wxid, $existsAccounts);
-            });
-        }
-
-
-        // 遍历群用户
-        $accounts = $users = $members = [];
-        foreach ($data as $item) {
-            $users[] = ['name' => $item->nickname, 'nickname' => $item->nickname, 'wx_account' => $item->wxid];
-            $accounts[] = ['account' => $item->wxid, 'nickname' => $item->nickname, 'type' => WechatAccount::TYPE_COMMON];
-            $members[] = ['owner_account' => $groupAccount, 'account' => $item->wxid];
-        }
-
-        // 写入数据
-        DB::transaction(function () use ($users, $accounts, $members) {
-            User::insert($users); // 写用户
-            WechatAccount::insert($accounts); // 写微信账户
-            DB::table('members')->insert($members); // 写群成员
-        });
-
-        return 'SUCCESS';
+        return json_decode(urldecode($res['data']));
     }
 
     /**

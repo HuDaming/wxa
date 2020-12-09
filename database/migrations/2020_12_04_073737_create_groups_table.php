@@ -18,8 +18,6 @@ class CreateGroupsTable extends Migration
             $table->string('title')->comment('群名称');
             $table->string('owner_account')->comment('群主账号');
             $table->string('service_account')->comment('所属客服账号');
-            $table->unsignedBigInteger('user_id')->comment('客服用户ID');
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->timestamps();
         });
     }
