@@ -126,10 +126,10 @@ class WechatAssistant
     public function getGroupMemberInfo(string $robotWxid, string $groupWxid, $memberWxid)
     {
         $params = [];
-        $data['type'] = 207;                // Api数值
-        $data['robot_wxid'] = $robotWxid;   // 账户id，取哪个账号的资料
-        $data['group_wxid'] = $groupWxid;   // 群id
-        $data['member_wxid'] = $memberWxid; // 群成员id
+        $params['type'] = 207;                // Api数值
+        $params['robot_wxid'] = $robotWxid;   // 账户id，取哪个账号的资料
+        $params['group_wxid'] = $groupWxid;   // 群id
+        $params['member_wxid'] = $memberWxid; // 群成员id
 
         return $this->assistantToolResponse($params);
     }

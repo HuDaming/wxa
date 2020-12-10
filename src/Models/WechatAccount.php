@@ -40,7 +40,7 @@ class WechatAccount extends Model
         self::TYPE_SERVICE => '客服',
     ];
 
-    protected $fillable = ['account', 'nickname', 'type'];
+    protected $fillable = ['account', 'nickname', 'avatar', 'type'];
 
     /**
      * 微信账号对应的用户

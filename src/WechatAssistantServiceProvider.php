@@ -2,6 +2,7 @@
 
 namespace Hudm\Wxa;
 
+use Hudm\Wxa\Commands\SyncMemberInfo;
 use Illuminate\Support\ServiceProvider;
 
 class WechatAssistantServiceProvider extends ServiceProvider
@@ -37,6 +38,12 @@ class WechatAssistantServiceProvider extends ServiceProvider
             __DIR__ . '/../config/assistant.php' => config_path('assistant.php')
         ]);
 
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                SyncMemberInfo::class,
+            ]);
+        }
     }
 }
