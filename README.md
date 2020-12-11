@@ -1,6 +1,6 @@
 <h1 align="center"> wxa </h1>
 
-<p align="center"> .</p>
+<p align="center"> 微信助手工具扩展应用包.</p>
 
 
 ## Installing
@@ -11,7 +11,9 @@ $ composer require hudm/wxa -vvv
 
 ## Usage
 
-TODO
+1. 安装可爱猫
+2. 安装ngrok内网穿透工具,配置
+> ngork http 8073
 
 ## Contributing
 
