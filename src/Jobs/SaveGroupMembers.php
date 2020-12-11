@@ -70,6 +70,8 @@ class SaveGroupMembers implements ShouldQueue
         // 遍历群成员
         foreach ($data as $item) {
             $members[] = ['owner_account' => $this->groupWxid, 'account' => $item->wxid];
+            // 5 分钟后同步成员详细资料
+            dispatch(new SyncGroupMemberInfo($this->robotWxid, $this->groupWxid, $item->wxid))->delay(now()->addMinutes(10));
         }
 
         // 写入数据
@@ -78,5 +80,7 @@ class SaveGroupMembers implements ShouldQueue
             WechatAccount::insert($accounts); // 写微信账户
             DB::table('members')->insert($members); // 写群成员
         });
+
+
     }
 }
